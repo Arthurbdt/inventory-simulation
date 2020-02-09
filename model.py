@@ -1,5 +1,6 @@
 import numpy as np
 import simpy
+import itertools
 
 # demand variables
 demand_sizes = [1, 2, 3, 4]
@@ -95,7 +96,7 @@ def demand(env, inventory):
         inventory.level -= size[0]
         inventory.last_change = env.now
 
-def run_sim(duration, reorder_point, order_size):
+def run(duration, reorder_point, order_size):
     """ Runs inventory system simulation for a given duration
 
     Args:
@@ -126,3 +127,25 @@ def run_sim(duration, reorder_point, order_size):
                'shortage_cost': round(avg_shortage_cost, 1)}
         
     return results
+
+def run_experiments(reorder_point_list, order_size_list, num_rep):
+    """ Runs inventory simulation with every combination of reorder points and
+    order sizes, and assembles results in a dataframe 
+    
+    Args:
+        - reorder_point_list: 
+        - order_size_list: 
+        - num_rep: number of replications to run for each design point 
+
+    """
+    # initialize results data collection
+    results = []
+    
+    # iterate over all design points
+    for i, j in itertools.product(reorder_point_list, order_size_list):
+        for k in range(num_rep):
+            results.append(run(120, i, j))
+    
+    # aggregate results into a dataframe
+    data = pd.DataFrame(results)
+    return data
