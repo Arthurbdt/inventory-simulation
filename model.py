@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import simpy
 import itertools
 
@@ -96,13 +97,13 @@ def demand(env, inventory):
         inventory.level -= size[0]
         inventory.last_change = env.now
 
-def run(duration, reorder_point, order_size):
-    """ Runs inventory system simulation for a given duration
+def run(length, reorder_point, order_size):
+    """ Runs inventory system simulation for a given length
 
     Args:
-        reorder_point: inventory level which triggers replenishment
-        order_size: number of units to order at each replenishment
-        duration: length of the simulation, in months
+        - length: length of the simulation, in months
+        - reorder_point: inventory level which triggers replenishment
+        - order_size: number of units to order at each replenishment
     """
 
     # setup simulation
@@ -110,14 +111,14 @@ def run(duration, reorder_point, order_size):
     inventory = InventorySystem(env, reorder_point, order_size)
     env.process(check_inventory(env, inventory))
     env.process(demand(env, inventory))
-    env.run(duration)
+    env.run(length)
 
     # compute and return simulation results
     avg_total_cost = (inventory.ordering_cost + inventory.holding_cost + 
-                      inventory.shortage_cost) / duration
-    avg_ordering_cost = inventory.ordering_cost / duration
-    avg_holding_cost = inventory.holding_cost / duration
-    avg_shortage_cost = inventory.shortage_cost / duration
+                      inventory.shortage_cost) / length
+    avg_ordering_cost = inventory.ordering_cost / length
+    avg_holding_cost = inventory.holding_cost / length
+    avg_shortage_cost = inventory.shortage_cost / length
 
     results = {'reorder_point': reorder_point,
                'order_size': order_size,
@@ -128,24 +129,25 @@ def run(duration, reorder_point, order_size):
         
     return results
 
-def run_experiments(reorder_point_list, order_size_list, num_rep):
+def run_experiments(length, reorder_point_list, order_size_list, num_rep):
     """ Runs inventory simulation with every combination of reorder points and
     order sizes, and assembles results in a dataframe 
     
     Args:
-        - reorder_point_list: 
-        - order_size_list: 
+        - length: length of the simulation, in months
+        - reorder_point_list: list of reorder points parameters to simulate 
+        - order_size_list:list of order size parameters to simulate
         - num_rep: number of replications to run for each design point 
-
     """
+    
     # initialize results data collection
     results = []
     
     # iterate over all design points
     for i, j in itertools.product(reorder_point_list, order_size_list):
         for k in range(num_rep):
-            results.append(run(120, i, j))
+            results.append(run(length, i, j))
     
     # aggregate results into a dataframe
-    data = pd.DataFrame(results)
-    return data
+    results = pd.DataFrame(results)
+    return results
