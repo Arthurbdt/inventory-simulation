@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import simpy
 import itertools
 
@@ -46,7 +45,6 @@ def check_inventory(env, inventory):
         # wait for until next inventory check
         yield env.timeout(1.0)
 
-
 def place_order(env, inventory, units_ordered):
     """ Places order and updates inventory level when order has been 
     received """
@@ -63,7 +61,6 @@ def place_order(env, inventory, units_ordered):
     update_costs(inventory, env.now)
     inventory.level += units_ordered
     inventory.last_change = env.now
-
 
 def update_costs(inventory, date):
     """ Computes shortage and holding costs before each change in 
@@ -97,7 +94,7 @@ def demand(env, inventory):
         inventory.level -= size[0]
         inventory.last_change = env.now
 
-def run(length, reorder_point, order_size):
+def run(length:float, reorder_point:float, order_size:float):
     """ Runs inventory system simulation for a given length
 
     Args:
@@ -105,7 +102,12 @@ def run(length, reorder_point, order_size):
         - reorder_point: inventory level which triggers replenishment
         - order_size: number of units to order at each replenishment
     """
-
+    # check user inputs
+    if length <= 0:
+        raise ValueError("Simulation length must be greater than zero")
+    if order_size < 0:
+        raise ValueError("Order size must be greater than zero")
+        
     # setup simulation
     env = simpy.Environment()
     inventory = InventorySystem(env, reorder_point, order_size)
@@ -129,25 +131,42 @@ def run(length, reorder_point, order_size):
         
     return results
 
-def run_experiments(length, reorder_point_list, order_size_list, num_rep):
+def run_experiments(length, reorder_points, order_sizes, num_rep):
     """ Runs inventory simulation with every combination of reorder points and
-    order sizes, and assembles results in a dataframe 
+    order sizes, and assembles results in a list of dictionaries
     
     Args:
         - length: length of the simulation, in months
-        - reorder_point_list: list of reorder points parameters to simulate 
-        - order_size_list:list of order size parameters to simulate
+        - reorder_points: list of reorder points parameters to simulate 
+        - order_sizes:list of order size parameters to simulate
         - num_rep: number of replications to run for each design point 
     """
     
-    # initialize results data collection
+    # validate user inputs:
+    if (isinstance(reorder_points, list) == False) or (isinstance(
+            order_sizes, list) == False):
+        raise TypeError('Reorder points and order sizes must be lists')
+    
+    if length <= 0:
+        raise ValueError("Simulation length must be greater than zero")
+    
+    if num_rep <=0:
+        raise ValueError('Number of replications must be greater than zero')
+        
+    # initiate variables
+    len1 = len(reorder_points)
+    len2 = len(order_sizes)
+    iter_count = 0
     results = []
     
     # iterate over all design points
-    for i, j in itertools.product(reorder_point_list, order_size_list):
+    for i, j in itertools.product(reorder_points, order_sizes):
         for k in range(num_rep):
+            iter_count += 1
+            # display a message to user every 100 replications
+            if iter_count % 100 == 0:
+                print('Iteration', iter_count, 'of', len1 * len2 * num_rep)
+            # record results
             results.append(run(length, i, j))
     
-    # aggregate results into a dataframe
-    results = pd.DataFrame(results)
     return results
