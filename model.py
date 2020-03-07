@@ -95,7 +95,8 @@ def demand(env, inventory):
         inventory.last_change = env.now
 
 def run(length:float, reorder_point:float, order_size:float):
-    """ Runs inventory system simulation for a given length
+    """ Runs inventory system simulation for a given length and returns
+    simulation results in a dictionary
 
     Args:
         - length: length of the simulation, in months
@@ -142,14 +143,7 @@ def run_experiments(length, reorder_points, order_sizes, num_rep):
         - num_rep: number of replications to run for each design point 
     """
     
-    # validate user inputs:
-    if (isinstance(reorder_points, list) == False) or (isinstance(
-            order_sizes, list) == False):
-        raise TypeError('Reorder points and order sizes must be lists')
-    
-    if length <= 0:
-        raise ValueError("Simulation length must be greater than zero")
-    
+    # validate user inputs:   
     if num_rep <=0:
         raise ValueError('Number of replications must be greater than zero')
         
