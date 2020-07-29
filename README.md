@@ -1,4 +1,4 @@
-# Inventory simulation
+# Inventory simulation tutorial
 
 This repository contains a discrete-event simulation (DES) model of a single product inventory system. It is built on the inventory system described in Law and Kelton's *Simulation Modeling and Analysis (3rd Edition, 2000)* and is aimed to be used as a tutorial on creating DES models in Python and peforming and statistical analysis of a terminating simulation output.
 
@@ -21,8 +21,6 @@ It is aimed to be used as an introduction to building and analyzing simulation m
 **Using the simulation model**
 * model.py contains the simulation model
 * output_analysis.ipynb contains the step by step tutorial to analyze output data
-
-**Modules used**
 
 
 <a id="conceptual-model"></a>
@@ -61,7 +59,7 @@ The company incurs a holding cost of $1 per month for every item in inventory an
 
 Simulating many combinations of different order sizes and reorder points allows to produce a contour plot the expected monthly total costs of the system. 
 
-![Contour plot](contour.png)
+![Contour plot](charts/contour.png)
 
 A reorder point of 30 with an order size of 25 result in the lowest possible monthly costs of below $120 monthly.
 
