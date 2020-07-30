@@ -42,6 +42,8 @@ Customer demands are met immediately if there are enough items in stock. If not,
 
 **Inventory replenishment**
 
+The company starts the period with an iinitial inventory of 60 units.
+
 At the beginning of each month, the company decides what quantity of items to order from the supplier. There is a fixed cost associated with placing an order of $32. Each individual items costs the company $3 to order.
 
 The flow time of the order is uniformly distributed between 0.5 and 1 month. Upon receipt of an order, items are immediately used to fulfill any existing backlog demand. Otherwise, they are placed in inventory.
@@ -61,7 +63,7 @@ Simulating many combinations of different order sizes and reorder points allows 
 
 ![Contour plot](charts/contour.png)
 
-A reorder point of 30 with an order size of 25 result in the lowest possible monthly costs of below $120 monthly.
+An order size of round 40 with a reorder point between 20 and 30 results in the lowest possible monthly costs of below $120 monthly.
 
 Total costs increase drastically when reorder point and order size decrease below 20 units. This is due to the prevalence of shortages that are heavily penalized with a monthly cost of $3 for every item backlogged.
 
