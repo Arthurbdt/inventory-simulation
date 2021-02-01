@@ -22,6 +22,22 @@ It is aimed to be used as an introduction to building and analyzing simulation m
 * model.py contains the simulation model
 * output_analysis.ipynb contains the step by step tutorial to analyze output data
 
+The main function run() will generate one replication of the simulation, and takes 3 arguments: the simulation length in months, the reorder point and the order size, expressed in units of inventory. It returns a dictionary with average monthly inventory costs.
+
+```
+import model
+
+model.run(length = 120., reorder_point = 10, order_size = 20)
+```
+
+The other main function is run_experiments(), which allows users to generate a number of independent replications of several scenarii. It returns a list of dictionaries containing results of each independent replication.
+
+```
+model.run_experiments(length = 120., 
+                      reorder_points = [5, 10, 15], 
+                      order_sizes = [20, 30, 40].
+                      num_rep = 10)
+```
 
 <a id="conceptual-model"></a>
 
