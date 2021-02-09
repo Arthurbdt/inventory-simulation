@@ -2,97 +2,87 @@ import numpy as np
 import simpy
 import itertools
 
-# demand variables
-demand_sizes = [1, 2, 3, 4]
-demand_prob = [1/6, 1/3, 1/3, 1/6]
-start_inventory = 60.
-
-# costs variables
+# simulation variables
+mean_iat = .1                       # average time between customer demands (months)
+demand_sizes = [1, 2, 3, 4]         # possible customer demand sizes
+demand_prob = [1/6, 1/3, 1/3, 1/6]  # probability of each demand size
+start_inventory = 60.               # units in inventory at simulation start
 order_cost_setup = 32.
 order_cost_per_item = 3.
-monthly_backlog_cost_per_item = 5.
-monthly_holding_cost_per_item = 1.
+backlog_cost_per_item = 5.
+holding_cost_per_item = 1.
 
-mean_interdemand_time = .1      # exponentially distributed
-
-class InventorySystem():
-    """ Monitors inventory level and ordering, shortage and holding costs """
+class InventorySystem:
+    """ Single product inventory system using a fixed reorder point
+    and order size policy. Inventory is reviewed at regular intervals """
 
     def __init__(self, env, reorder_point, order_size):
-        
-        # input variables
+        # initialize values
         self.reorder_point = reorder_point
         self.order_size = order_size
         self.level = start_inventory
         self.last_change = 0.
-
-        # initialize performance measures
         self.ordering_cost = 0.
         self.shortage_cost = 0.
         self.holding_cost = 0.
+        # launch processes
+        env.process(self.review_inventory(env))
+        env.process(self.demands(env))
 
+    def place_order(self, env, units):
+        """ Place and receive orders """
+        # update ordering costs
+        self.ordering_cost += (order_cost_setup
+                              + units * order_cost_per_item)
+        # determine when order will be received
+        lead_time = np.random.uniform(.5, 1.0)
+        yield env.timeout(lead_time)
+        # update inventory level and costs
+        self.update_cost(env)
+        self.level += units
+        self.last_change = env.now
+    
+    def review_inventory(self, env):
+        """ Check inventory level at regular intervals and place
+        orders inventory level is below reorder point """
+        while True:
+            # place order if required
+            if self.level <= self.reorder_point:
+                units = (self.order_size
+                        + self.reorder_point
+                        - self.level)
+                env.process(self.place_order(env, units))
+            # wait for next check
+            yield env.timeout(1.0)
 
-def check_inventory(env, inventory):
-    """ Checks inventory at regular interval and places order if needed """
-
-    while True:
-        # check inventory
-        if inventory.level < inventory.reorder_point:
-            units_ordered = (inventory.order_size + 
-                             inventory.reorder_point - inventory.level)
-            env.process(place_order(env, inventory, units_ordered))
-
-        # wait for until next inventory check
-        yield env.timeout(1.0)
-
-def place_order(env, inventory, units_ordered):
-    """ Places order and updates inventory level when order has been 
-    received """
-
-    # update ordering cost
-    inventory.ordering_cost += (order_cost_setup + order_cost_per_item * 
-                                units_ordered)
-
-    # wait for next order to arrive
-    delivery_delay = np.random.uniform(.5, 1.0)
-    yield env.timeout(delivery_delay)
-
-    # update inventory level and compute costs
-    update_costs(inventory, env.now)
-    inventory.level += units_ordered
-    inventory.last_change = env.now
-
-def update_costs(inventory, date):
-    """ Computes shortage and holding costs before each change in 
-    inventory """
-
-    # check for shortage
-    if inventory.level <= 0:
-        period_shortage_cost = (abs(inventory.level) * 
-                                monthly_backlog_cost_per_item * 
-                                (date -  inventory.last_change))
-        inventory.shortage_cost += period_shortage_cost
-        
-    # compute holding costs
-    else:
-        period_holding_cost = (inventory.level * 
-            monthly_holding_cost_per_item * 
-            (date -  inventory.last_change))
-        inventory.holding_cost += period_holding_cost
-
-def demand(env, inventory):
-    """ Generates demand at random intervals and updates inventory level """
-
-    while True:
-        # create demand at random interval
-        iat = np.random.exponential(mean_interdemand_time)
-        size = np.random.choice(demand_sizes, 1, p=demand_prob)
-        yield env.timeout(iat)
-
-        # decrease inventory levels and update costs
-        update_costs(inventory, env.now)
-        inventory.level -= size[0]
-        inventory.last_change = env.now
+    def update_cost(self, env):
+        """ Update holding and shortage cost at each inventory
+         movement """
+        # update shortage cost
+        if self.level <= 0:
+            shortage_cost = (abs(self.level)
+                                * backlog_cost_per_item
+                                * (env.now - self.last_change))
+            self.shortage_cost += shortage_cost
+        else:
+            # update holding cost
+            holding_cost = (self.level
+                            * holding_cost_per_item
+                            * (env.now - self.last_change))
+            self.holding_cost += holding_cost
+    
+    def demands(self, env):
+        """ Generate demand at random intervals and update
+         inventory level """
+        while True:
+            # generate next demand size and time
+            iat = np.random.exponential(mean_iat)
+            size = np.random.choice(demand_sizes, 1, p=demand_prob)
+            yield env.timeout(iat)
+            # update inventory level and costs upon demand receipt
+            self.update_cost(env)
+            self.level -= size[0]
+            self.last_change = env.now
 
 def run(length:float, reorder_point:float, order_size:float):
     """ Runs inventory system simulation for a given length and returns
@@ -107,29 +97,24 @@ def run(length:float, reorder_point:float, order_size:float):
     if length <= 0:
         raise ValueError("Simulation length must be greater than zero")
     if order_size < 0:
-        raise ValueError("Order size must be greater than zero")
-        
+        raise ValueError("Order size must be greater than zero")  
     # setup simulation
     env = simpy.Environment()
-    inventory = InventorySystem(env, reorder_point, order_size)
-    env.process(check_inventory(env, inventory))
-    env.process(demand(env, inventory))
+    inv = InventorySystem(env, reorder_point, order_size)
     env.run(length)
-
-    # compute and return simulation results
-    avg_total_cost = (inventory.ordering_cost + inventory.holding_cost + 
-                      inventory.shortage_cost) / length
-    avg_ordering_cost = inventory.ordering_cost / length
-    avg_holding_cost = inventory.holding_cost / length
-    avg_shortage_cost = inventory.shortage_cost / length
-
+      # compute and return simulation results
+    avg_total_cost = (inv.ordering_cost 
+                    + inv.holding_cost 
+                    + inv.shortage_cost) / length
+    avg_ordering_cost = inv.ordering_cost / length
+    avg_holding_cost = inv.holding_cost / length
+    avg_shortage_cost = inv.shortage_cost / length
     results = {'reorder_point': reorder_point,
                'order_size': order_size,
                'total_cost': round(avg_total_cost, 1), 
                'ordering_cost': round(avg_ordering_cost, 1),
                'holding_cost': round(avg_holding_cost, 1), 
-               'shortage_cost': round(avg_shortage_cost, 1)}
-        
+               'shortage_cost': round(avg_shortage_cost, 1)}      
     return results
 
 def run_experiments(length, reorder_points, order_sizes, num_rep):
@@ -141,18 +126,15 @@ def run_experiments(length, reorder_points, order_sizes, num_rep):
         - reorder_points: list of reorder points parameters to simulate 
         - order_sizes:list of order size parameters to simulate
         - num_rep: number of replications to run for each design point 
-    """
-    
+    """   
     # validate user inputs:   
     if num_rep <=0:
-        raise ValueError('Number of replications must be greater than zero')
-        
+        raise ValueError('Number of replications must be greater than zero') 
     # initiate variables
     len1 = len(reorder_points)
     len2 = len(order_sizes)
     iter_count = 0
-    results = []
-    
+    results = [] 
     # iterate over all design points
     for i, j in itertools.product(reorder_points, order_sizes):
         for k in range(num_rep):
@@ -162,5 +144,4 @@ def run_experiments(length, reorder_points, order_sizes, num_rep):
                 print('Iteration', iter_count, 'of', len1 * len2 * num_rep)
             # record results
             results.append(run(length, i, j))
-    
     return results
