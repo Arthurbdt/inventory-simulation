@@ -14,7 +14,7 @@ class LocalSearch:
         # compute initial value
         self.path = []
         self.cost = []
-        val = [model.run(120, start[0], start[1])['total_cost'] for j in range(runs)]
+        val = [model.run(start[0], start[1])['total_cost'] for j in range(runs)]
         best = np.mean(val)
         self.path = start
         self.cost.append(best)
@@ -22,7 +22,7 @@ class LocalSearch:
         # complete n steps search
         for i in range(1,n):
             next = self.neighbor(start)
-            val = [model.run(120, next[0], next[1])['total_cost'] for j in range(runs)]
+            val = [model.run(next[0], next[1])['total_cost'] for j in range(runs)]
             val = np.mean(val)
             # only select neighbor if solution improves 
             if val < best:

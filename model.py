@@ -148,7 +148,6 @@ def run_experiments(reorder_points, order_sizes, num_rep):
     order sizes, and assembles results in a list of dictionaries
     
     Args:
-        - length: length of the simulation, in months
         - reorder_points: list of reorder points parameters to simulate 
         - order_sizes:list of order size parameters to simulate
         - num_rep: number of replications to run for each design point 
